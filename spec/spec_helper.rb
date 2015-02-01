@@ -1,5 +1,6 @@
 require 'rspec'
 require 'iron_fixture_extractor'
+require 'pry'
 # Require test helpers like FeTestEnv
 Dir[File.join(File.dirname(__FILE__),"support/**/*.rb")].each {|f| require f}
 # Don't show me the migration up + down crap

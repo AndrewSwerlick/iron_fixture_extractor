@@ -14,9 +14,9 @@ module Fe
     #
 
     def initialize
-      # This delays the constraint checked to the end of the transaction allowing inserting rows out of order when tables have foreign key to each other. 
-      # Solves also teh issue with truncating when foreign keys are present. 
-      # TODO: adapt this to other databases if needed 
+      # This delays the constraint checked to the end of the transaction allowing inserting rows out of order when tables have foreign key to each other.
+      # Solves also teh issue with truncating when foreign keys are present.
+      # TODO: adapt this to other databases if needed
       ActiveRecord::Base.connection.execute("SET CONSTRAINTS ALL DEFERRED") if ActiveRecord::Base.connection.adapter_name == 'PostgreSQL'
     end
 
@@ -52,7 +52,7 @@ module Fe
     def load_into_database(options={})
       # necessary to make multiple invocations possible in a single test
       # case possible
-      ActiveRecord::Fixtures.reset_cache
+      ActiveRecord::FixtureSet.reset_cache
 
       # Filter down the models to load if specified
       the_tables = if options.has_key?(:only)
@@ -77,7 +77,7 @@ module Fe
           end
           if options[:map].nil?
             # Vanilla create_fixtures will work fine when no mapping is being used
-            ActiveRecord::Fixtures.create_fixtures(self.target_path, table_name)
+            ActiveRecord::FixtureSet.create_fixtures(self.target_path, table_name)
           else
             # Map table_name via a function (great for prefixing)
             new_table_name = if options[:map].kind_of?(Proc)
@@ -88,7 +88,7 @@ module Fe
             else
               table_name # No mapping for this table name
             end
-            fixtures = ActiveRecord::Fixtures.new( ActiveRecord::Base.connection,
+            fixtures = ActiveRecord::FixtureSet.new( ActiveRecord::Base.connection,
                 new_table_name,
                 class_name,
                 ::File.join(self.target_path, table_name))
@@ -176,7 +176,7 @@ module Fe
       if @fixture_hashes.nil?
         @fixture_hashes = {}
       end
-      if @fixture_hashes.has_key?(model_name) 
+      if @fixture_hashes.has_key?(model_name)
         @fixture_hashes[model_name]
       else
         @fixture_hashes[model_name] = YAML.load_file(self.fixture_path_for_model(model_name))
@@ -192,14 +192,14 @@ module Fe
     # * These are used by the Fe module to setup the Extractor object
     # This is called from 2 types of invocations
     #   Fe.extract('Post.all', :name => :bla)
-    #   or 
+    #   or
     #   Fe.extract('[Post.all,Comment.all]', :name => :bla2)
-    #   
+    #
     def load_from_args(active_relation_or_array,*args)
       options = args.extract_options!
       @name = (options[:name] || Time.now.strftime("%Y_%m_%d_%H_%M_%S")).to_sym
       if active_relation_or_array.kind_of? String
-        @extract_code = active_relation_or_array 
+        @extract_code = active_relation_or_array
       else
         raise "Extract code must be a string, so .rebuild can be called"
       end
@@ -234,7 +234,7 @@ module Fe
       @output_hash[key].add(record)
       record.association_cache.each_pair do |assoc_name,association_def|
         Array(association_def.target).each do |a|
-          self.recurse(a)  
+          self.recurse(a)
         end
       end
     end
@@ -252,8 +252,8 @@ module Fe
             fixture_name = "r#{Array(record.id).join('_')}"
             hash[fixture_name] = record.attributes
             # dump serialized attributes
-            record.serialized_attributes.each do |attr, serializer|
-              hash[fixture_name][attr] = serializer.dump(hash[fixture_name][attr])
+            record.class.columns_hash.each do |attr, column|
+              hash[fixture_name][attr] = column.type_cast_for_database(hash[fixture_name][attr])
             end
             hash
           }.to_yaml
