@@ -90,7 +90,7 @@ module Fe
             end
             fixtures = ActiveRecord::FixtureSet.new( ActiveRecord::Base.connection,
                 new_table_name,
-                class_name,
+                class_name.constantize,
                 ::File.join(self.target_path, table_name))
             fixtures.table_rows.each do |the_table_name,rows|
               rows.each do |row|
@@ -252,8 +252,8 @@ module Fe
             fixture_name = "r#{Array(record.id).join('_')}"
             hash[fixture_name] = record.attributes
             # dump serialized attributes
-            record.class.columns_hash.each do |attr, column|
-              hash[fixture_name][attr] = column.type_cast_for_database(hash[fixture_name][attr])
+            record.class.serialized_attributes.each do |attr, serializer|
+              hash[fixture_name][attr] = serializer.dump(hash[fixture_name][attr])
             end
             hash
           }.to_yaml
