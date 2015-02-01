@@ -94,7 +94,7 @@ module Fe
                 ::File.join(self.target_path, table_name))
             fixtures.table_rows.each do |the_table_name,rows|
               rows.each do |row|
-                ActiveRecord::Base.connection.insert_fixture(row, the_table_name)
+                ActiveRecord::Base.connection.insert_fixture(row, new_table_name)
               end
             end
           end
